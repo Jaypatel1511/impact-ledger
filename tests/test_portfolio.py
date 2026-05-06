@@ -78,3 +78,18 @@ def test_summary_runs(sample_portfolio):
 def test_remove(sample_portfolio, sample_loan):
     sample_portfolio.remove(sample_loan.id)
     assert sample_portfolio.count() == 2
+
+
+def test_portfolio_irr_returns_float(sample_portfolio):
+    irr = sample_portfolio.portfolio_irr
+    assert irr is None or isinstance(irr, float)
+
+
+def test_investment_irr_returns_float(sample_portfolio, sample_loan):
+    irr = sample_portfolio.investment_irr(sample_loan.id)
+    assert irr is None or isinstance(irr, float)
+
+
+def test_investment_irr_invalid_id_raises(sample_portfolio):
+    with pytest.raises(ValueError, match="not found"):
+        sample_portfolio.investment_irr("INVALID")

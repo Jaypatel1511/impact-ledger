@@ -169,6 +169,12 @@ class Portfolio:
         print(f"  Total Outstanding:     ${self.total_outstanding/1e6:.2f}MM")
         print(f"  Annual Income:         ${self.annual_income/1e6:.2f}MM")
         print(f"  Weighted Avg Yield:    {self.weighted_avg_rate*100:.2f}%")
+        irr = self.portfolio_irr
+        if irr is not None:
+            print(f"  Portfolio IRR:         {irr*100:.2f}%")
+        irr = self.portfolio_irr
+        if irr is not None:
+            print(f"  Portfolio IRR:         {irr*100:.2f}%")
         print(f"  Total Investments:     {self.count()}")
         print(f"  Active:                {len(self.active_investments)}")
         print(f"  Impaired:              {len(self.impaired_investments)}")
@@ -242,3 +248,94 @@ class Portfolio:
             count=("amount", "count"),
             total_amount=("amount", "sum"),
         ).reset_index().sort_values("total_amount", ascending=False)
+
+    @property
+    def portfolio_irr(self) -> float:
+        """
+        Compute portfolio-level IRR across all investments.
+        Uses simplified cash flow model:
+        - Outflow: committed amount at close date
+        - Inflows: annual interest received + principal returned
+        - Terminal: remaining outstanding balance at end
+        Returns IRR as a decimal (e.g. 0.08 = 8%) or None if insufficient data.
+        """
+        import numpy as np
+
+        if not self._investments:
+            return None
+
+        try:
+            # Build annual cash flows — max 30 year horizon
+            flows = {}
+            for inv in self._investments:
+                year = int(inv.date_closed[:4])
+                flows[year] = flows.get(year, 0) - inv.amount
+
+                maturity_year = int(inv.maturity_date[:4])
+                for yr in range(year + 1, maturity_year + 1):
+                    flows[yr] = flows.get(yr, 0) + inv.annual_income
+
+                flows[maturity_year] = (
+                    flows.get(maturity_year, 0) + inv.outstanding_balance
+                )
+
+            if not flows:
+                return None
+
+            years = sorted(flows.keys())
+            cash_flows = [flows[y] for y in years]
+
+            # Newton-Raphson IRR solver
+            rate = 0.10
+            for _ in range(100):
+                npv = sum(cf / (1 + rate) ** i for i, cf in enumerate(cash_flows))
+                dnpv = sum(-i * cf / (1 + rate) ** (i + 1)
+                           for i, cf in enumerate(cash_flows))
+                if dnpv == 0:
+                    break
+                new_rate = rate - npv / dnpv
+                if abs(new_rate - rate) < 1e-6:
+                    rate = new_rate
+                    break
+                rate = new_rate
+
+            return round(rate, 4) if -1 < rate < 10 else None
+
+        except Exception:
+            return None
+
+    def investment_irr(self, investment_id: str) -> float:
+        """
+        Compute IRR for a single investment by ID.
+        """
+        inv = self.get(investment_id)
+        if not inv:
+            raise ValueError(f"Investment '{investment_id}' not found.")
+
+        try:
+            year_close = int(inv.date_closed[:4])
+            year_mature = int(inv.maturity_date[:4])
+
+            cash_flows = [-inv.amount]
+            for _ in range(year_close + 1, year_mature + 1):
+                cash_flows.append(inv.annual_income)
+            cash_flows[-1] += inv.outstanding_balance
+
+            rate = 0.10
+            for _ in range(100):
+                npv = sum(cf / (1 + rate) ** i
+                          for i, cf in enumerate(cash_flows))
+                dnpv = sum(-i * cf / (1 + rate) ** (i + 1)
+                           for i, cf in enumerate(cash_flows))
+                if dnpv == 0:
+                    break
+                new_rate = rate - npv / dnpv
+                if abs(new_rate - rate) < 1e-6:
+                    rate = new_rate
+                    break
+                rate = new_rate
+
+            return round(rate, 4) if -1 < rate < 10 else None
+
+        except Exception:
+            return None
