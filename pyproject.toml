@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "impact-ledger"
-version = "0.2.0"
+version = "0.2.1"
 description = "Open source impact investment portfolio tracker for CDFIs, private debt, and community development finance"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -13,6 +13,9 @@ dependencies = [
     "pandas>=1.4.0",
     "numpy>=1.21.0",
 ]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
 
 [project.urls]
 Homepage = "https://github.com/Jaypatel1511/impact-ledger"
