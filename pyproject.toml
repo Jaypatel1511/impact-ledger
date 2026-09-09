@@ -18,4 +18,8 @@ dependencies = [
 dev = ["pytest>=7.0"]
 
 [project.urls]
-Homepage = "https://github.com/Jaypatel1511/impact-ledger"
+Homepage = "https://jaypatel1511.github.io/cdfi-superpowers/"
+Repository = "https://github.com/Jaypatel1511/impact-ledger"
+Documentation = "https://github.com/Jaypatel1511/impact-ledger#readme"
+Issues = "https://github.com/Jaypatel1511/impact-ledger/issues"
+Changelog = "https://github.com/Jaypatel1511/impact-ledger/blob/main/CHANGELOG.md"
